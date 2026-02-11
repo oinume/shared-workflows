@@ -1,0 +1,95 @@
+name: claude-code
+
+on:
+  workflow_call:
+    inputs:
+      claude_args:
+        description: "Additional arguments to pass to Claude Code (e.g. --mcp-config, --allowedTools)"
+        required: true
+        type: string
+      allowed_bots:
+        description: "Comma-separated list of bot names allowed to trigger the workflow"
+        required: false
+        type: string
+        default: "claude-bot,claude"
+      fetch_depth:
+        description: "Number of commits to fetch (0 for full history)"
+        required: false
+        type: number
+        default: 1
+    secrets:
+      anthropic_api_key:
+        description: "Anthropic API key"
+        required: true
+
+jobs:
+  claude:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: read
+      id-token: write
+      actions: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: ${{ inputs.fetch_depth }}
+
+      # Extract model from comment/issue body
+      - name: Determine Claude Model
+        id: determine-claude-model
+        run: |
+          # Get the comment/issue body based on event type
+          if [ "${{ github.event_name }}" = "issue_comment" ]; then
+            BODY=$(cat <<'EOF'
+          ${{ github.event.comment.body }}
+          EOF
+          )
+          elif [ "${{ github.event_name }}" = "pull_request_review_comment" ]; then
+            BODY=$(cat <<'EOF'
+          ${{ github.event.comment.body }}
+          EOF
+          )
+          elif [ "${{ github.event_name }}" = "pull_request_review" ]; then
+            BODY=$(cat <<'EOF'
+          ${{ github.event.review.body }}
+          EOF
+          )
+          elif [ "${{ github.event_name }}" = "issues" ]; then
+            BODY=$(cat <<'EOF'
+          ${{ github.event.issue.body }}
+          EOF
+          )
+          fi
+
+          # Convert to lowercase for case-insensitive matching
+          BODY_LOWER=$(echo "$BODY" | tr '[:upper:]' '[:lower:]')
+
+          # Determine model based on keywords
+          if echo "$BODY_LOWER" | grep -q '\bopus\b'; then
+            MODEL="claude-opus-4-6"
+          elif echo "$BODY_LOWER" | grep -q '\bhaiku\b'; then
+            MODEL="claude-haiku-4-5"
+          else
+            # Default to sonnet (including when 'sonnet' keyword is present)
+            MODEL="claude-sonnet-4-5"
+          fi
+
+          echo "model=$MODEL" >> $GITHUB_OUTPUT
+          echo "Selected model: $MODEL"
+
+      - name: Run Claude Code
+        id: run-claude-code
+        uses: anthropics/claude-code-action@b433f16b30d54063fd3bab6b12f46f3da00e41b6 # v1.0.47
+        with:
+          anthropic_api_key: ${{ secrets.anthropic_api_key }}
+
+          additional_permissions: |
+            actions: read
+
+          allowed_bots: ${{ inputs.allowed_bots }}
+
+          claude_args: |
+            --model ${{ steps.determine-claude-model.outputs.model }}
+            ${{ inputs.claude_args }}
