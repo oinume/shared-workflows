@@ -17,6 +17,11 @@ on:
         required: false
         type: number
         default: 1
+      settings:
+        description: "Path to a settings JSON file or inline JSON string for Claude Code settings"
+        required: false
+        type: string
+        default: ""
     secrets:
       anthropic_api_key:
         description: "Anthropic API key"
@@ -93,3 +98,5 @@ jobs:
           claude_args: |
             --model ${{ steps.determine-claude-model.outputs.model }}
             ${{ inputs.claude_args }}
+
+          settings: ${{ inputs.settings }}
