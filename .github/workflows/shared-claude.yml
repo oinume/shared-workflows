@@ -73,7 +73,7 @@ jobs:
 
           # Determine model based on keywords
           if echo "$BODY_LOWER" | grep -q '\bopus\b'; then
-            MODEL="claude-opus-4-6"
+            MODEL="claude-opus-4-7"
           elif echo "$BODY_LOWER" | grep -q '\bhaiku\b'; then
             MODEL="claude-haiku-4-5"
           else
