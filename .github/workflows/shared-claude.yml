@@ -68,7 +68,28 @@ jobs:
           )
           fi
 
-          MODEL=$(scripts/determine-claude-model.sh "$BODY")
+          contains_keyword() {
+            local keyword="$1"
+            [[ "$BODY_LOWER" =~ (^|[^[:alnum:]_])${keyword}([^[:alnum:]_]|$) ]]
+          }
+
+          BODY_LOWER=$(printf '%s' "$BODY" | tr '[:upper:]' '[:lower:]')
+
+          if contains_keyword "opus48" || contains_keyword "opus"; then
+            MODEL="claude-opus-4-8"
+          elif contains_keyword "opus47"; then
+            MODEL="claude-opus-4-7"
+          elif contains_keyword "sonnet5" || contains_keyword "sonnet"; then
+            MODEL="claude-sonnet-5"
+          elif contains_keyword "sonnet46"; then
+            MODEL="claude-sonnet-4-6"
+          elif contains_keyword "haiku45" || contains_keyword "haiku"; then
+            MODEL="claude-haiku-4-5"
+          else
+            MODEL="claude-sonnet-5"
+          fi
+
+          echo "model=$MODEL" >> "$GITHUB_OUTPUT"
           echo "Selected model: $MODEL"
 
       - name: Run Claude Code
