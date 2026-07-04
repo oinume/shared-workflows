@@ -68,20 +68,7 @@ jobs:
           )
           fi
 
-          # Convert to lowercase for case-insensitive matching
-          BODY_LOWER=$(echo "$BODY" | tr '[:upper:]' '[:lower:]')
-
-          # Determine model based on keywords
-          if echo "$BODY_LOWER" | grep -q '\bopus\b'; then
-            MODEL="claude-opus-4-7"
-          elif echo "$BODY_LOWER" | grep -q '\bhaiku\b'; then
-            MODEL="claude-haiku-4-5"
-          else
-            # Default to sonnet (including when 'sonnet' keyword is present)
-            MODEL="claude-sonnet-4-6"
-          fi
-
-          echo "model=$MODEL" >> $GITHUB_OUTPUT
+          MODEL=$(scripts/determine-claude-model.sh "$BODY")
           echo "Selected model: $MODEL"
 
       - name: Run Claude Code
